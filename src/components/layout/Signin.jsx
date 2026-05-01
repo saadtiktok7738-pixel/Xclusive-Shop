@@ -14,7 +14,6 @@ export default function SignIn() {
       setLocation("/");
     }
   }, [user, setLocation]);
-
   return (
     <>
     <Helmet>

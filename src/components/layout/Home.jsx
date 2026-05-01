@@ -12,7 +12,6 @@ export default function Home() {
   const { products, categories, banners } = useData();
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
 
-  // Auto-advance banner slider
   React.useEffect(() => {
     if (!emblaApi) return;
     const interval = setInterval(() => {

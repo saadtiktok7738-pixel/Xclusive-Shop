@@ -13,7 +13,6 @@ export default function Catalog() {
   const filteredProducts = products.filter(
     (p) => !filter || p.category.toLowerCase() === filter
   );
-
   const sortedProducts = [...filteredProducts].sort((a, b) => {
     if (sort === "price-asc") return a.price - b.price;
     if (sort === "price-desc") return b.price - a.price;

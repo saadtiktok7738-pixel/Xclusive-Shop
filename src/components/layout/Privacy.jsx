@@ -12,7 +12,6 @@ export default function Privacy() {
     name="description"
     content="Read the Privacy Policy of Xclusive Shop to understand how we collect, use, and protect your personal information."
   />
-
   <meta
     name="keywords"
     content="privacy policy, Xclusive Shop privacy, data protection, user information, terms"
