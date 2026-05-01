@@ -29,7 +29,7 @@ import AdminLayout from "./components/bonents/admin/AdminLayout.jsx";
 import AdminDashboard from "./components/layout/admin/Dashboard.jsx";
 import AdminOrders from "./components/layout/admin/Orders.jsx";
 import AdminBanners from "./components/layout/admin/Banners.jsx";
-import AdminCategories from "./components/layout/Category.jsx";
+import AdminCategories from "./components/layout/admin/Categories.jsx";
 import AdminProducts from "./components/layout/admin/Products.jsx";
 import AdminProductForm from "./components/layout/admin/ProductForm.jsx";
 import AdminUsers from "./components/layout/admin/Users.jsx";

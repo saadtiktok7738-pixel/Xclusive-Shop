@@ -403,7 +403,7 @@ export function Header() {
     <aside className="relative w-[80%] max-w-xs bg-white h-full flex flex-col animate-in slide-in-from-left">
       
       <div className="p-4 flex justify-between items-center border-b">
-        <Logo size="md" />
+        <Logo size="sm" />
         <button
           onClick={() => setIsMobileMenuOpen(false)}
           className="p-1"
