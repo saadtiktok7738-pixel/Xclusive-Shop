@@ -45,7 +45,7 @@ export default function AdminLayout({ children }) {
             className="text-xl font-bold tracking-tight"
             data-testid="link-admin-home"
           >
-            MSLAL<span className="text-[#a8e063]">.</span>
+            Xclusive Shop<span className="text-[#a8e063]">.</span>
             <span className="ml-2 text-xs font-normal text-white/60">Admin</span>
           </Link>
         </div>
