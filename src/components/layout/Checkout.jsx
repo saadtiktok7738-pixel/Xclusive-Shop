@@ -101,19 +101,7 @@ export default function Checkout() {
         } catch {}
       }
 
-      // ===============================
-      // 🔥 ADMIN WHATSAPP NOTIFICATION
-      // ===============================
-      await sendWhatsApp(
-        ADMIN_NUMBER,
-        `🛒 NEW ORDER PLACED
-
-Order ID: ${shortId}
-Customer: ${name}
-Phone: ${phone}
-Total: Rs. ${orderTotal}
-Status: Pending`
-      );
+      
 
       await clearCart();
       toast.success("Order placed successfully!");
