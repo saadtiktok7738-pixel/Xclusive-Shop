@@ -12,6 +12,8 @@ import { db } from "../lib/firebase.js";
 import { toast } from "sonner";
 import { Helmet } from "react-helmet-async";
 
+
+
 export default function Checkout() {
   const { cart, cartTotal, clearCart } = useCart();
   const { user } = useAuth();
@@ -20,7 +22,6 @@ export default function Checkout() {
   const [, setLocation] = useLocation();
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Name is ALWAYS empty — the user must type it in for every order, even when signed in.
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
@@ -100,6 +101,20 @@ export default function Checkout() {
         } catch {}
       }
 
+      // ===============================
+      // 🔥 ADMIN WHATSAPP NOTIFICATION
+      // ===============================
+      await sendWhatsApp(
+        ADMIN_NUMBER,
+        `🛒 NEW ORDER PLACED
+
+Order ID: ${shortId}
+Customer: ${name}
+Phone: ${phone}
+Total: Rs. ${orderTotal}
+Status: Pending`
+      );
+
       await clearCart();
       toast.success("Order placed successfully!");
       setLocation(`/thankyou?orderId=${ref.id}`);
@@ -113,34 +128,18 @@ export default function Checkout() {
   return (
     <>
     <Helmet>
-  {/* Prevent SEO indexing (IMPORTANT for checkout pages) */}
   <meta name="robots" content="noindex, nofollow" />
-
   <title>Checkout | Xclusive Shop</title>
-
-  <meta
-    name="description"
-    content="Secure checkout at Xclusive Shop. Complete your order safely and quickly."
-  />
-
+  <meta name="description" content="Secure checkout at Xclusive Shop. Complete your order safely and quickly." />
   <meta name="keywords" content="checkout, Xclusive Shop, secure payment, order" />
-
-  {/* Open Graph */}
   <meta property="og:title" content="Checkout | Xclusive Shop" />
-  <meta
-    property="og:description"
-    content="Complete your purchase securely at Xclusive Shop checkout."
-  />
+  <meta property="og:description" content="Complete your purchase securely at Xclusive Shop checkout." />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Xclusive Shop" />
-
-  {/* Twitter */}
   <meta name="twitter:title" content="Checkout | Xclusive Shop" />
-  <meta
-    name="twitter:description"
-    content="Secure checkout for your Xclusive Shop order."
-  />
+  <meta name="twitter:description" content="Secure checkout for your Xclusive Shop order." />
 </Helmet>
+
     <Layout>
       <div className="container mx-auto px-4 py-6 md:py-12 flex flex-col md:flex-row gap-12">
         <div className="w-full md:w-1/2">
@@ -271,8 +270,7 @@ export default function Checkout() {
                     </div>
 
                     <span className="font-bold">
-                      Rs.{" "}
-                      {(product.price * item.quantity).toLocaleString()}
+                      Rs. {(product.price * item.quantity).toLocaleString()}
                     </span>
                   </div>
                 );
@@ -281,23 +279,16 @@ export default function Checkout() {
 
             <div className="border-t border-border pt-4 space-y-2 text-sm mb-6">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">
-                  Subtotal
-                </span>
+                <span className="text-muted-foreground">Subtotal</span>
                 <span>Rs. {cartTotal.toLocaleString()}</span>
               </div>
 
               <div className="flex justify-between">
-                <span className="text-muted-foreground">
-                  Shipping
-                </span>
-
+                <span className="text-muted-foreground">Shipping</span>
                 {shippingSettings.type === "free" ? (
                   <span className="text-accent font-bold">FREE</span>
                 ) : (
-                  <span>
-                    Rs. {shippingCost.toLocaleString()}
-                  </span>
+                  <span>Rs. {shippingCost.toLocaleString()}</span>
                 )}
               </div>
             </div>

@@ -110,6 +110,7 @@ function InitialLoaderGate({ children }) {
   );
 }
 
+
 function App() {
   return (
     <TooltipProvider>
