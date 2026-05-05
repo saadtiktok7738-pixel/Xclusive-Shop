@@ -23,8 +23,6 @@ export default function Banners() {
   const [banners, setBanners] = useState([]);
   const [uploadingDefault, setUploadingDefault] = useState(false);
   const [uploadingMobile, setUploadingMobile] = useState(null);
-  const [title, setTitle] = useState("");
-  const [subtitle, setSubtitle] = useState("");
 
   useEffect(() => {
     const unsub = onSnapshot(
@@ -59,14 +57,9 @@ export default function Banners() {
       await addDoc(collection(db, "banners"), {
         image: dataUrl,
         imageMobile: null,
-        title: title.trim() || null,
-        subtitle: subtitle.trim() || null,
         order: banners.length,
         createdAt: new Date().toISOString(),
       });
-
-      setTitle("");
-      setSubtitle("");
       toast.success("Banner added — you can now attach a mobile image below.");
     } catch (err) {
       console.error(err);
@@ -146,21 +139,6 @@ export default function Banners() {
       {/* Add banner */}
       <div className="border border-neutral-200 bg-white p-4 md:p-6">
         <h2 className="text-sm font-semibold">Add a banner</h2>
-
-        <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Title (optional)"
-            className="border border-neutral-300 px-3 py-2 text-sm"
-          />
-          <input
-            value={subtitle}
-            onChange={(e) => setSubtitle(e.target.value)}
-            placeholder="Subtitle (optional)"
-            className="border border-neutral-300 px-3 py-2 text-sm"
-          />
-        </div>
 
         <div className="mt-4">
           <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-neutral-700">

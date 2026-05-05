@@ -165,9 +165,7 @@ export default function Users() {
         </table>
       </div>
 
-      <p className="text-[11px] text-neutral-400">
-        Note: Deleting a user here removes their Firestore record only. Their Firebase Auth identity persists until removed from the Firebase console.
-      </p>
+    
     </div>
   );
 }

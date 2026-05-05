@@ -39,9 +39,19 @@ import Loader from "./components/bonents/Loader.jsx";
 
 function ScrollToTop() {
   const [location] = useLocation();
+
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "instant" });
+    if ("scrollRestoration" in history) {
+      history.scrollRestoration = "manual";
+    }
+  }, []);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
   }, [location]);
+
   return null;
 }
 

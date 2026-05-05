@@ -98,6 +98,24 @@ export default function Orders() {
 
       await updateDoc(doc(db, "orders", id), update);
       toast.success(`Status updated to ${status}`);
+
+      // Send customer email for meaningful status changes
+      const notifyStatuses = ["processing", "shipped", "delivered", "cancelled"];
+      if (notifyStatuses.includes(status)) {
+        const order = orders.find((o) => o.id === id);
+        if (order && order.email) {
+          const updatedOrder = { ...order, status };
+          fetch("/api/send-order", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "status-update",
+              order: updatedOrder,
+              customerEmail: order.email,
+            }),
+          }).catch(() => {});
+        }
+      }
     } catch {
       toast.error("Failed to update status");
     }
@@ -145,6 +163,25 @@ export default function Orders() {
 
       await updateDoc(doc(db, "orders", trackingOrder.id), update);
       toast.success("Tracking saved");
+
+      // Send tracking email to customer
+      if (trackingOrder.email) {
+        const updatedOrder = {
+          ...trackingOrder,
+          courier: courier.trim(),
+          trackingId: trackingId.trim(),
+        };
+        fetch("/api/send-order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "tracking-added",
+            order: updatedOrder,
+            customerEmail: trackingOrder.email,
+          }),
+        }).catch(() => {});
+      }
+
       setTrackingOrder(null);
     } catch {
       toast.error("Failed to save tracking");
@@ -287,6 +324,11 @@ export default function Orders() {
                       <p>
                         <strong>Name:</strong> {o.name}
                       </p>
+                      {o.email && (
+                        <p>
+                          <strong>Email:</strong> {o.email}
+                        </p>
+                      )}
                       <p>
                         <strong>Phone:</strong> {o.phone}
                       </p>

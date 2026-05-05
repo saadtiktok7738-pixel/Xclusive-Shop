@@ -34,9 +34,10 @@ export default function Dashboard() {
   const [orders, setOrders] = useState([]);
   const [presence, setPresence] = useState([]);
   const [now, setNow] = useState(Date.now());
-  const [from, setFrom] = useState(
-    format(subDays(new Date(), 29), "yyyy-MM-dd")
-  );
+  const [from, setFrom] = useState(() => {
+    const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
+    return format(subDays(new Date(), isMobile ? 6 : 29), "yyyy-MM-dd");
+  });
   const [to, setTo] = useState(format(new Date(), "yyyy-MM-dd"));
 
   useEffect(() => {
@@ -167,15 +168,32 @@ export default function Dashboard() {
 
       {/* Header */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        {/* Left: heading + inline range buttons on mobile */}
         <div>
-          <h1 className="text-lg md:text-2xl font-bold">
-            Dashboard
-          </h1>
-          <p className="text-xs md:text-sm text-neutral-500">
+          <div className="flex items-center justify-between sm:block">
+            <h1 className="text-lg md:text-2xl font-bold">
+              Dashboard
+            </h1>
+            {/* Range buttons — mobile only, inline with heading */}
+            <div className="flex gap-1 sm:hidden">
+              {[7, 30, 90].map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setRange(d)}
+                  className="border border-neutral-300 bg-white px-2 py-1 text-[11px]"
+                >
+                  {d}d
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* Subtitle — desktop only */}
+          <p className="hidden sm:block text-xs md:text-sm text-neutral-500">
             Sales & order trends for the selected range.
           </p>
         </div>
 
+        {/* Right: date pickers + range buttons (range buttons hidden on mobile) */}
         <div className="flex flex-wrap items-end gap-2">
           <div className="flex flex-col">
             <label className="text-[10px] md:text-[11px] uppercase tracking-wider text-neutral-500">
@@ -203,7 +221,8 @@ export default function Dashboard() {
             />
           </div>
 
-          <div className="flex gap-1">
+          {/* Range buttons — desktop only */}
+          <div className="hidden sm:flex gap-1">
             {[7, 30, 90].map((d) => (
               <button
                 key={d}
