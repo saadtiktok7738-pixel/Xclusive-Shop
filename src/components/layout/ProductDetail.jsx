@@ -53,6 +53,100 @@ function getReviewsForProduct(productId) {
   return picked;
 }
 
+function ProductDetailSkeleton() {
+  return (
+    <Layout>
+      <div className="container mx-auto px-4 py-8 md:py-12 max-w-6xl animate-pulse">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
+
+          {/* Left Image Skeleton */}
+          <div>
+            <div className="aspect-square bg-gray-200" />
+
+            <div className="flex gap-2 mt-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="w-16 h-16 bg-gray-200" />
+              ))}
+            </div>
+          </div>
+
+          {/* Right Info Skeleton */}
+          <div>
+            <div className="h-3 w-24 bg-gray-200 mb-3" />
+
+            <div className="h-6 w-3/4 bg-gray-200 mb-4" />
+
+            <div className="h-6 w-32 bg-gray-200 mb-6" />
+
+            <div className="h-4 w-20 bg-gray-200 mb-4" />
+
+            {/* Quantity + Color */}
+            <div className="flex gap-6 mb-6">
+              <div>
+                <div className="h-3 w-16 bg-gray-200 mb-2" />
+                <div className="flex">
+                  <div className="w-10 h-10 bg-gray-200" />
+                  <div className="w-10 h-10 bg-gray-200" />
+                  <div className="w-10 h-10 bg-gray-200" />
+                </div>
+              </div>
+
+              <div>
+                <div className="h-3 w-20 bg-gray-200 mb-2" />
+                <div className="flex gap-2">
+                  <div className="w-14 h-7 bg-gray-200" />
+                  <div className="w-14 h-7 bg-gray-200" />
+                </div>
+              </div>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex gap-3 mb-6">
+              <div className="h-12 w-full bg-gray-200" />
+              <div className="h-12 w-full bg-gray-200" />
+            </div>
+
+            {/* Features */}
+            <div className="grid grid-cols-3 gap-2 mb-6">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="h-16 bg-gray-200" />
+              ))}
+            </div>
+
+            {/* Reviews */}
+            <div className="border-t pt-4">
+              <div className="h-4 w-32 bg-gray-200 mb-4" />
+
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex gap-2">
+                    <div className="w-7 h-7 bg-gray-200 rounded-full" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3 w-1/3 bg-gray-200" />
+                      <div className="h-3 w-full bg-gray-200" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Description */}
+        <div className="mt-10 border-t pt-8">
+          <div className="h-5 w-48 bg-gray-200 mb-4" />
+          <div className="space-y-2">
+            <div className="h-3 w-full bg-gray-200" />
+            <div className="h-3 w-5/6 bg-gray-200" />
+            <div className="h-3 w-4/6 bg-gray-200" />
+          </div>
+        </div>
+      </div>
+    </Layout>
+  );
+}
+
 export default function ProductDetail() {
   const [, params] = useRoute("/product/:id");
   const id = params?.id;
@@ -89,6 +183,10 @@ export default function ProductDetail() {
     }
   }, [user]);
 
+  const isLoading = !products || products.length === 0;
+  if (isLoading) {
+  return <ProductDetailSkeleton />;
+}
   if (!product) {
     return (
       <Layout>
