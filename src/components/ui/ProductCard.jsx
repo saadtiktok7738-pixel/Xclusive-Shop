@@ -16,7 +16,7 @@ import { collection, addDoc, updateDoc, doc } from "firebase/firestore";
 import { db } from "../lib/firebase.js";
 import { toast } from "sonner";
 
-export function ProductCard({ product }) {
+export const ProductCard = React.memo(function ProductCard({ product }) {
   const { toggleWishlist, wishlist, addToCart } = useCart();
   const { user } = useAuth();
   const [, setLocation] = useLocation();
@@ -24,11 +24,16 @@ export function ProductCard({ product }) {
   const isWished = wishlist.includes(product.id);
 
   const [buyOpen, setBuyOpen] = useState(false);
+  const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  React.useEffect(() => {
+    if (user?.email && !email) setEmail(user.email);
+  }, [user]);
 
   const handleBuyNowDesktop = (e) => {
     e.preventDefault();
@@ -52,7 +57,7 @@ export function ProductCard({ product }) {
   const placeQuickOrder = async (e) => {
     e.preventDefault();
 
-    if (!name.trim() || !phone.trim() || !address.trim() || !city.trim()) {
+    if (!email.trim() || !name.trim() || !phone.trim() || !address.trim() || !city.trim()) {
       toast.error("Please fill in all fields");
       return;
     }
@@ -62,6 +67,7 @@ export function ProductCard({ product }) {
     try {
       const order = {
         userId: user?.uid || "guest",
+        email: email.trim(),
         name: name.trim(),
         phone: phone.trim(),
         address: address.trim(),
@@ -107,8 +113,17 @@ export function ProductCard({ product }) {
         } catch {}
       }
 
+      const fullOrder = { ...order, orderId: ref.id, shortId };
+
+      fetch("/api/send-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "order-placed", order: fullOrder }),
+      }).catch(() => {});
+
       toast.success("Order placed successfully!");
       setBuyOpen(false);
+      setEmail(user?.email || "");
       setName("");
       setPhone("");
       setAddress("");
@@ -240,6 +255,19 @@ export function ProductCard({ product }) {
     <form onSubmit={placeQuickOrder} className="space-y-3 mt-2">
       <div>
         <label className="block text-xs font-medium mb-1">
+          Email Address *
+        </label>
+        <Input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@example.com"
+          required
+        />
+      </div>
+
+      <div>
+        <label className="block text-xs font-medium mb-1">
           Full Name *
         </label>
         <Input
@@ -300,4 +328,4 @@ export function ProductCard({ product }) {
 </Dialog>
     </>
   );
-}
+});

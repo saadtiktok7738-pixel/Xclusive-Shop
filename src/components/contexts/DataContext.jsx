@@ -1,6 +1,6 @@
 // DataContext — provides static catalogue data with caching
 
-import React, { createContext, useContext, useEffect, useRef, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { db } from "../lib/firebase.js";
 import { appCache, TTL } from "../lib/cache.js";
 import { collection, getDocs, query, orderBy } from "firebase/firestore";
@@ -50,7 +50,7 @@ export function DataProvider({ children }) {
   const [categories, setCategories] = useState(appCache.get(KEY_CATEGORIES) || []);
   const [banners, setBanners] = useState(appCache.get(KEY_BANNERS) || []);
 
-  const [loading, setLoading] = useState(!appCache.has(KEY_PRODUCTS));
+  const [loading, setLoading] = useState(!appCache.has(KEY_BANNERS) || !appCache.has(KEY_CATEGORIES));
   const [offline, setOffline] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
 
@@ -65,30 +65,22 @@ export function DataProvider({ children }) {
 
     if (!needProducts && !needCategories && !needBanners) return;
 
-    if (!appCache.has(KEY_PRODUCTS)) setLoading(true);
-
     fetchingRef.current = true;
 
+    // ── Phase 1: banners + categories (unblocks homepage render immediately) ──
     try {
-      const [freshProducts, freshCategories, freshBanners] = await Promise.all([
-        needProducts ? fetchProducts() : appCache.get(KEY_PRODUCTS),
-        needCategories ? fetchCategories() : appCache.get(KEY_CATEGORIES),
-        needBanners ? fetchBanners() : appCache.get(KEY_BANNERS),
+      const [freshBanners, freshCategories] = await Promise.all([
+        needBanners ? fetchBanners() : Promise.resolve(appCache.get(KEY_BANNERS)),
+        needCategories ? fetchCategories() : Promise.resolve(appCache.get(KEY_CATEGORIES)),
       ]);
-
-      if (needProducts) {
-        appCache.set(KEY_PRODUCTS, freshProducts, TTL.PRODUCTS);
-        setProducts(freshProducts);
-      }
-
-      if (needCategories) {
-        appCache.set(KEY_CATEGORIES, freshCategories, TTL.CATEGORIES);
-        setCategories(freshCategories);
-      }
 
       if (needBanners) {
         appCache.set(KEY_BANNERS, freshBanners, TTL.BANNERS);
         setBanners(freshBanners);
+      }
+      if (needCategories) {
+        appCache.set(KEY_CATEGORIES, freshCategories, TTL.CATEGORIES);
+        setCategories(freshCategories);
       }
 
       setOffline(false);
@@ -96,15 +88,26 @@ export function DataProvider({ children }) {
     } catch (err) {
       console.error(err);
       setErrorMessage(toFirebaseError(err) || "Failed to load data");
-
-      if (!appCache.has(KEY_PRODUCTS)) setOffline(true);
+      if (!appCache.has(KEY_BANNERS)) setOffline(true);
     } finally {
-      fetchingRef.current = false;
       setLoading(false);
     }
+
+    // ── Phase 2: products in background (does not block rendering) ──
+    if (needProducts) {
+      try {
+        const freshProducts = await fetchProducts();
+        appCache.set(KEY_PRODUCTS, freshProducts, TTL.PRODUCTS);
+        setProducts(freshProducts);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    fetchingRef.current = false;
   };
 
-  const refreshProducts = async () => {
+  const refreshProducts = useCallback(async () => {
     appCache.invalidate(KEY_PRODUCTS);
 
     try {
@@ -114,7 +117,7 @@ export function DataProvider({ children }) {
     } catch (err) {
       console.error(err);
     }
-  };
+  }, []);
 
   useEffect(() => {
 

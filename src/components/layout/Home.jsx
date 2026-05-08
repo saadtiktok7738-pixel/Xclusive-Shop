@@ -112,14 +112,25 @@ export default function Home() {
     return () => clearInterval(timer);
   }, []);
 
+  // Memoised product slices — recomputed only when products changes,
+  // not on every countdown-timer tick.
+  const hotSelling = React.useMemo(
+    () => products.filter((p) => p.isHot).slice(0, 8),
+    [products]
+  );
+  const newArrivals = React.useMemo(
+    () => products.filter((p) => p.isNewArrival).slice(0, 8),
+    [products]
+  );
+  const limitedOffer = React.useMemo(
+    () => products.find((p) => p.isLimitedOffer) || null,
+    [products]
+  );
+
   // Show skeleton while data is loading on first visit
   if (loading) {
     return <HomeSkeleton />;
   }
-
-  const hotSelling = products.filter((p) => p.isHot).slice(0, 8);
-  const newArrivals = products.filter((p) => p.isNewArrival).slice(0, 8);
-  const limitedOffer = products.find((p) => p.isLimitedOffer);
 
   return (
     <>

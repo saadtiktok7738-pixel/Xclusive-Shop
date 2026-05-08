@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Layout } from "../bonents/mainpage/Layout.jsx";
 import { useRoute, useLocation } from "wouter";
 import { useData } from "../contexts/DataContext.jsx";
@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Minus, Plus, ShoppingCart, Zap, Truck, Headphones, RefreshCcw, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { collection, addDoc, updateDoc, doc } from "firebase/firestore";
+import { collection, addDoc, updateDoc, doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase.js";
 import { Helmet } from "react-helmet-async";
 
@@ -152,11 +152,46 @@ export default function ProductDetail() {
   const id = params?.id;
 
   const { products } = useData();
-  const product = products.find((p) => p.id === id);
-
   const { addToCart } = useCart();
   const { user } = useAuth();
   const [, setLocation] = useLocation();
+
+  // Resolve product: use context if already loaded, else fetch by ID directly
+  const contextProduct = products.find((p) => p.id === id);
+  const [localProduct, setLocalProduct] = useState(contextProduct || null);
+  const [localLoading, setLocalLoading] = useState(!contextProduct);
+
+  // Guard: prevents re-firing getDoc every time the background products list updates
+  const directFetchedRef = useRef(false);
+
+  useEffect(() => {
+    // Reset guard when navigating to a different product
+    directFetchedRef.current = false;
+  }, [id]);
+
+  useEffect(() => {
+    // Whenever context populates with this product, prefer it (fresher data)
+    const found = products.find((p) => p.id === id);
+    if (found) {
+      setLocalProduct(found);
+      setLocalLoading(false);
+      return;
+    }
+    // Context doesn't have it yet — fetch just this one document directly.
+    // Guard ensures we only fire one Firestore read per product id, even if
+    // the background products list triggers multiple re-runs of this effect.
+    if (!id || directFetchedRef.current) return;
+    directFetchedRef.current = true;
+    setLocalLoading(true);
+    getDoc(doc(db, "products", id))
+      .then((snap) => {
+        if (snap.exists()) setLocalProduct({ id: snap.id, ...snap.data() });
+      })
+      .catch(() => {})
+      .finally(() => setLocalLoading(false));
+  }, [id, products]);
+
+  const product = localProduct;
 
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
@@ -183,10 +218,28 @@ export default function ProductDetail() {
     }
   }, [user]);
 
-  const isLoading = !products || products.length === 0;
-  if (isLoading) {
-  return <ProductDetailSkeleton />;
-}
+  // Memoised derived values — computed before early returns so hooks are
+  // always called in the same order. Optional chaining handles null product.
+  const stockQty = useMemo(() => product?.stock || 0, [product?.stock]);
+  const inStock = useMemo(() => stockQty > 0, [stockQty]);
+  const stockLabel = useMemo(() => {
+    if (stockQty === 0) return "Out of stock";
+    if (stockQty <= 5) return `Only ${stockQty} left`;
+    return "Limited stock";
+  }, [stockQty]);
+  const reviews = useMemo(
+    () => (product ? getReviewsForProduct(product.id) : []),
+    [product?.id]
+  );
+
+  const handleAddToCart = useCallback(() => {
+    addToCart(product?.id, quantity, selectedColor);
+    toast.success("Added to cart!");
+  }, [addToCart, product?.id, quantity, selectedColor]);
+
+  if (localLoading) {
+    return <ProductDetailSkeleton />;
+  }
   if (!product) {
     return (
       <Layout>
@@ -196,23 +249,6 @@ export default function ProductDetail() {
       </Layout>
     );
   }
-
-  const stockQty = product.stock || 0;
-  const inStock = stockQty > 0;
-
-  const stockLabel =
-    stockQty === 0
-      ? "Out of stock"
-      : stockQty <= 5
-      ? `Only ${stockQty} left`
-      : "Limited stock";
-
-  const reviews = getReviewsForProduct(product.id);
-
-  const handleAddToCart = () => {
-    addToCart(product.id, quantity, selectedColor);
-    toast.success("Added to cart!");
-  };
 
   const placeBuyNowOrder = async (e) => {
     e.preventDefault();
