@@ -16,6 +16,7 @@ import { collection, addDoc, updateDoc, doc } from "firebase/firestore";
 import { db } from "../lib/firebase.js";
 import { toast } from "sonner";
 
+
 export const ProductCard = React.memo(function ProductCard({ product }) {
   const { toggleWishlist, wishlist, addToCart } = useCart();
   const { user } = useAuth();
