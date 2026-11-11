@@ -60,11 +60,11 @@ export default function Orders() {
   useEffect(() => {
     const unsub = onSnapshot(collection(db, "orders"), (snap) => {
       const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      list.sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() -
-          new Date(a.createdAt).getTime()
-      );
+      list.sort((a, b) => {
+        const ta = a.createdAt?.toMillis?.() ?? 0;
+        const tb = b.createdAt?.toMillis?.() ?? 0;
+        return tb - ta;
+      });
       setOrders(list);
     });
     return () => unsub();
@@ -78,7 +78,7 @@ export default function Orders() {
         const q = search.trim().toLowerCase();
         return (
           o.id.toLowerCase().includes(q) ||
-          (o.name || "").toLowerCase().includes(q)
+          (o.customerName || "").toLowerCase().includes(q)
         );
       })
     : filtered;
@@ -103,7 +103,7 @@ export default function Orders() {
       const notifyStatuses = ["processing", "shipped", "delivered", "cancelled"];
       if (notifyStatuses.includes(status)) {
         const order = orders.find((o) => o.id === id);
-        if (order && order.email) {
+        if (order && order.customerEmail) {
           const updatedOrder = { ...order, status };
           fetch("/api/send-order", {
             method: "POST",
@@ -111,7 +111,7 @@ export default function Orders() {
             body: JSON.stringify({
               type: "status-update",
               order: updatedOrder,
-              customerEmail: order.email,
+              customerEmail: order.customerEmail,
             }),
           }).catch(() => {});
         }
@@ -165,7 +165,7 @@ export default function Orders() {
       toast.success("Tracking saved");
 
       // Send tracking email to customer
-      if (trackingOrder.email) {
+      if (trackingOrder.customerEmail) {
         const updatedOrder = {
           ...trackingOrder,
           courier: courier.trim(),
@@ -177,7 +177,7 @@ export default function Orders() {
           body: JSON.stringify({
             type: "tracking-added",
             order: updatedOrder,
-            customerEmail: trackingOrder.email,
+            customerEmail: trackingOrder.customerEmail,
           }),
         }).catch(() => {});
       }
@@ -249,11 +249,11 @@ export default function Orders() {
                   <p className="text-xs font-mono font-bold text-neutral-800">
                     #{shortId}
                   </p>
-                  <p className="text-sm text-neutral-600">{o.name}</p>
+                  <p className="text-sm text-neutral-600">{o.customerName}</p>
                 </div>
 
                 <div className="hidden text-xs text-neutral-500 md:block">
-                  {format(new Date(o.createdAt), "MMM d, yyyy h:mm a")}
+                  {o.createdAt?.toDate ? format(o.createdAt.toDate(), "MMM d, yyyy h:mm a") : "—"}
                 </div>
 
                 <div className="text-sm font-bold">
@@ -322,26 +322,26 @@ export default function Orders() {
                         </span>
                       </p>
                       <p>
-                        <strong>Name:</strong> {o.name}
+                        <strong>Name:</strong> {o.customerName}
                       </p>
-                      {o.email && (
+                      {o.customerEmail && (
                         <p>
-                          <strong>Email:</strong> {o.email}
+                          <strong>Email:</strong> {o.customerEmail}
                         </p>
                       )}
                       <p>
-                        <strong>Phone:</strong> {o.phone}
+                        <strong>Phone:</strong> {o.customerPhone}
                       </p>
                       <p>
-                        <strong>City:</strong> {o.city}
+                        <strong>City:</strong> {o.customerCity}
                       </p>
                       <p>
-                        <strong>Address:</strong> {o.address}
+                        <strong>Address:</strong> {o.customerAddress}
                       </p>
 
-                      {o.note && (
+                      {o.notes && (
                         <p>
-                          <strong>Note:</strong> {o.note}
+                          <strong>Note:</strong> {o.notes}
                         </p>
                       )}
 
@@ -404,7 +404,7 @@ export default function Orders() {
                         <div className="flex justify-between">
                           <span>Subtotal</span>
                           <span>
-                            Rs. {(o.subtotal ?? o.total).toLocaleString()}
+                            Rs. {o.total.toLocaleString()}
                           </span>
                         </div>
 
@@ -451,7 +451,7 @@ export default function Orders() {
         {trackingOrder && (
           <p className="text-xs text-muted-foreground">
             Order #{trackingOrder.id.slice(0, 8).toUpperCase()} ·{" "}
-            {trackingOrder.name}
+            {trackingOrder.customerName}
           </p>
         )}
       </DialogHeader>

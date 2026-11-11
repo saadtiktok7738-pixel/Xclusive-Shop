@@ -61,9 +61,8 @@ export default function Banners() {
         createdAt: new Date().toISOString(),
       });
       toast.success("Banner added — you can now attach a mobile image below.");
-    } catch (err) {
-      console.error(err);
-      toast.error("Upload failed: " + (err?.message ?? "unknown"));
+    } catch {
+      toast.error("Upload failed. Please try a smaller image.");
     } finally {
       setUploadingDefault(false);
     }
@@ -84,9 +83,8 @@ export default function Banners() {
       });
 
       toast.success("Mobile banner updated");
-    } catch (err) {
-      console.error(err);
-      toast.error("Mobile upload failed: " + (err?.message ?? "unknown"));
+    } catch {
+      toast.error("Mobile upload failed. Please try a smaller image.");
     } finally {
       setUploadingMobile(null);
     }

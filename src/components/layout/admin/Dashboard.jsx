@@ -25,14 +25,10 @@ import {
   ShoppingBag,
   TrendingUp,
   Package,
-  Activity,
 } from "lucide-react";
-
-const ACTIVE_WINDOW_MS = 60000;
 
 export default function Dashboard() {
   const [orders, setOrders] = useState([]);
-  const [presence, setPresence] = useState([]);
   const [now, setNow] = useState(Date.now());
   const [from, setFrom] = useState(() => {
     const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
@@ -49,33 +45,11 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, "presence"), (snap) => {
-      setPresence(
-        snap.docs.map((d) => {
-          const data = d.data();
-          const ts =
-            typeof data.lastSeen === "string"
-              ? new Date(data.lastSeen).getTime()
-              : 0;
-
-          return { id: d.id, lastSeen: ts };
-        })
-      );
-    });
-
     const tick = setInterval(() => setNow(Date.now()), 10000);
-
-    return () => {
-      unsub();
-      clearInterval(tick);
-    };
+    return () => clearInterval(tick);
   }, []);
 
-  const liveVisitors = useMemo(
-    () =>
-      presence.filter((p) => now - p.lastSeen < ACTIVE_WINDOW_MS).length,
-    [presence, now]
-  );
+  const liveVisitors = 0;
 
   const fromDate = useMemo(() => startOfDay(parseISO(from)), [from]);
   const toDate = useMemo(() => endOfDay(parseISO(to)), [to]);
@@ -83,7 +57,7 @@ export default function Dashboard() {
   const filtered = useMemo(
     () =>
       orders.filter((o) => {
-        const t = new Date(o.createdAt).getTime();
+        const t = o.createdAt?.toDate?.()?.getTime?.() ?? 0;
         return (
           t >= fromDate.getTime() &&
           t <= toDate.getTime() &&
@@ -103,7 +77,7 @@ export default function Dashboard() {
 
       const dayOrders = filtered.filter(
         (o) =>
-          format(new Date(o.createdAt), "yyyy-MM-dd") === key
+          format(new Date(o.createdAt?.toDate?.() ?? o.createdAt ?? Date.now()), "yyyy-MM-dd") === key
       );
 
       return {

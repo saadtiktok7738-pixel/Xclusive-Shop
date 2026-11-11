@@ -44,8 +44,13 @@ export default function Categories() {
   const submit = async (e) => {
     e.preventDefault();
 
-    if (!name.trim() || !imageFile) {
-      toast.error("Name and image are required");
+    if (!name.trim() || name.trim().length > 100) {
+      toast.error("Category name is required (max 100 characters)");
+      return;
+    }
+
+    if (!imageFile) {
+      toast.error("Category image is required");
       return;
     }
 

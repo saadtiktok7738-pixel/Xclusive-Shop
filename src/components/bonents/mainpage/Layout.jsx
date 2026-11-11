@@ -2,7 +2,6 @@ import React from "react";
 import { Header } from "./Header";
 import { Footer } from "./Footer";
 import { MobileBottomBar } from "./MobileBottomBar";
-import { usePresence } from "../../hooks/usePresence.js";
 import { OfflineBanner } from "../OffilneBanner.jsx";
 
 function WhatsAppButton() {
@@ -23,8 +22,6 @@ function WhatsAppButton() {
 }
 
 export function Layout({ children }) {
-  usePresence();
-
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       <Header />

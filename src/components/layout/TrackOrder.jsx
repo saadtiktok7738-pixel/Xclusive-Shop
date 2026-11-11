@@ -5,13 +5,7 @@ import { Input } from "../ui/input.jsx";
 import { Helmet } from "react-helmet-async";
 import {
   doc,
-  getDoc,
-  collection,
-  query,
-  where,
-  getDocs,
-  orderBy,
-  limit
+  getDoc
 } from "firebase/firestore";
 import { db } from "../lib/firebase.js";
 import {
@@ -143,37 +137,6 @@ export default function TrackOrder() {
 
       if (directSnap.exists()) {
         setOrder({ id: directSnap.id, ...directSnap.data() });
-        return;
-      }
-
-      const shortQ = query(
-        collection(db, "orders"),
-        where("shortId", "==", cleaned.toUpperCase())
-      );
-
-      const shortSnap = await getDocs(shortQ);
-
-      if (!shortSnap.empty) {
-        const d = shortSnap.docs[0];
-        setOrder({ id: d.id, ...d.data() });
-        return;
-      }
-
-      const target = cleaned.toUpperCase();
-      const recentQ = query(
-        collection(db, "orders"),
-        orderBy("createdAt", "desc"),
-        limit(200)
-      );
-
-      const recentSnap = await getDocs(recentQ);
-
-      const matched = recentSnap.docs.find(
-        (d) => d.id.slice(0, 8).toUpperCase() === target
-      );
-
-      if (matched) {
-        setOrder({ id: matched.id, ...matched.data() });
         return;
       }
 
@@ -325,7 +288,7 @@ export default function TrackOrder() {
               <User size={14} className="text-muted-foreground mt-0.5" />
               <div>
                 <p className="text-xs text-muted-foreground">Name</p>
-                <p className="font-medium">{order.name}</p>
+                <p className="font-medium">{order.customerName}</p>
               </div>
             </div>
 
@@ -333,7 +296,7 @@ export default function TrackOrder() {
               <Phone size={14} className="text-muted-foreground mt-0.5" />
               <div>
                 <p className="text-xs text-muted-foreground">Phone</p>
-                <p className="font-medium">{order.phone}</p>
+                <p className="font-medium">{order.customerPhone}</p>
               </div>
             </div>
 
@@ -342,7 +305,7 @@ export default function TrackOrder() {
               <div>
                 <p className="text-xs text-muted-foreground">Address</p>
                 <p className="font-medium">
-                  {order.address}, {order.city}
+                  {order.customerAddress}, {order.customerCity}
                 </p>
               </div>
             </div>

@@ -1,9 +1,72 @@
-import React from "react";
+import React, { useState } from "react";
 import { Layout } from "../bonents/mainpage/Layout.jsx";
 import { MapPin, Phone, Mail, Clock, MessageCircle } from "lucide-react";
 import { Helmet } from "react-helmet-async";
+import { Button } from "../ui/button.jsx";
+import { Input } from "../ui/input.jsx";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { db } from "../lib/firebase.js";
+import { toast } from "sonner";
+
+const PHONE_PATTERN = /^[0-9+()\-\s]{0,20}$/;
 
 export default function Contact() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [message, setMessage] = useState("");
+  const [website, setWebsite] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (submitting || website) return;
+
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+    const trimmedPhone = phone.trim();
+    const trimmedMessage = message.trim();
+
+    if (trimmedName.length < 2 || trimmedName.length > 100) {
+      toast.error("Please enter your name (2–100 characters).");
+      return;
+    }
+    if (!trimmedEmail || trimmedEmail.length > 254) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+    if (trimmedPhone && !PHONE_PATTERN.test(trimmedPhone)) {
+      toast.error("Please enter a valid phone number.");
+      return;
+    }
+    if (trimmedMessage.length < 5 || trimmedMessage.length > 2000) {
+      toast.error("Please enter a message (5–2000 characters).");
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      await addDoc(collection(db, "messages"), {
+        name: trimmedName,
+        email: trimmedEmail,
+        ...(trimmedPhone ? { phone: trimmedPhone } : {}),
+        message: trimmedMessage,
+        createdAt: serverTimestamp(),
+      });
+
+      toast.success("Message sent! We'll get back to you soon.");
+      setName("");
+      setEmail("");
+      setPhone("");
+      setMessage("");
+    } catch {
+      toast.error("Failed to send message. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <>
     <Helmet>
@@ -103,16 +166,77 @@ export default function Contact() {
         </div>
 
         <div className="bg-muted/50 border border-border p-6">
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-2 mb-6">
             <MessageCircle size={16} className="text-accent" />
-            <h3 className="font-semibold text-sm uppercase tracking-wide">Support</h3>
+            <h3 className="font-semibold text-sm uppercase tracking-wide">Send us a message</h3>
           </div>
 
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            For order tracking, cancellations, or exchange requests, please have your Order ID ready when you contact us.
-            Our support team typically responds to all inquiries within one business day. For urgent matters, calling
-            or WhatsApp is the fastest way to reach us.
-          </p>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Name *</label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                maxLength={100}
+                placeholder="Your full name"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Email *</label>
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                maxLength={254}
+                placeholder="you@example.com"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Phone (optional)</label>
+              <Input
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                maxLength={20}
+                placeholder="e.g. 0300 1234567"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Message *</label>
+              <textarea
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                required
+                minLength={5}
+                maxLength={2000}
+                rows={5}
+                className="w-full border border-input bg-transparent px-3 py-2 text-sm"
+                placeholder="How can we help you?"
+              />
+            </div>
+
+            <div className="hidden" aria-hidden="true">
+              <label>
+                Leave this field empty
+                <input
+                  type="text"
+                  name="website"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
+                />
+              </label>
+            </div>
+
+            <Button type="submit" disabled={submitting} className="w-full h-11">
+              {submitting ? "Sending..." : "Send Message"}
+            </Button>
+          </form>
         </div>
       </div>
     </Layout>

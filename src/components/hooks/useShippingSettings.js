@@ -9,9 +9,6 @@ const DEFAULT = {
   cost: 0,
 };
 
-/**
- * Shipping settings hook (Firestore realtime)
- */
 export function useShippingSettings() {
   const [settings, setSettings] = useState(DEFAULT);
   const [loading, setLoading] = useState(true);
@@ -20,10 +17,14 @@ export function useShippingSettings() {
     const unsub = onSnapshot(
       SETTINGS_DOC,
       (snap) => {
-        setSettings(snap.exists() ? snap.data() : DEFAULT);
+        if (snap.exists()) setSettings(snap.data());
         setLoading(false);
       },
-      () => setLoading(false)
+      () => {
+        // Permission-denied for non-admins is expected; fall back to free shipping.
+        setSettings(DEFAULT);
+        setLoading(false);
+      }
     );
 
     return () => unsub();

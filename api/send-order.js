@@ -1,6 +1,22 @@
 const SENDER_EMAIL = "xclusiveshop.pk@gmail.com";
 const SENDER_NAME = "Xclusive Shop";
 
+// ── HTML escaping helper (prevents stored XSS) ───────────────────────────
+function esc(value) {
+  if (value == null) return "";
+  return String(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function num(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
 // ── Email templates ────────────────────────────────────────────────────────
 
 function adminOrderTemplate(order) {
@@ -9,10 +25,10 @@ function adminOrderTemplate(order) {
       (item) => `
     <tr>
       <td style="padding:10px 8px;border-bottom:1px solid #f0f0f0;font-size:14px;color:#111111;">
-        ${item.name}${item.color ? ` <span style="color:#888888;font-size:12px;">(${item.color})</span>` : ""}
+        ${esc(item.name)}${item.color ? ` <span style="color:#888888;font-size:12px;">(${esc(item.color)})</span>` : ""}
       </td>
-      <td style="padding:10px 8px;border-bottom:1px solid #f0f0f0;text-align:center;font-size:14px;color:#111111;">${item.quantity}</td>
-      <td style="padding:10px 8px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:14px;font-weight:bold;color:#111111;">Rs. ${(item.price * item.quantity).toLocaleString()}</td>
+      <td style="padding:10px 8px;border-bottom:1px solid #f0f0f0;text-align:center;font-size:14px;color:#111111;">${num(item.quantity)}</td>
+      <td style="padding:10px 8px;border-bottom:1px solid #f0f0f0;text-align:right;font-size:14px;font-weight:bold;color:#111111;">Rs. ${(num(item.price) * num(item.quantity)).toLocaleString()}</td>
     </tr>`
     )
     .join("");
@@ -37,12 +53,12 @@ function adminOrderTemplate(order) {
         <tr><td style="padding:32px 40px;">
           <h2 style="color:#111111;font-size:13px;margin:0 0 14px;letter-spacing:1px;text-transform:uppercase;border-bottom:2px solid #f0f0f0;padding-bottom:10px;">Customer Information</h2>
           <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
-            <tr><td style="padding:5px 0;color:#666666;font-size:13px;width:110px;">Name</td><td style="padding:5px 0;color:#111111;font-size:13px;font-weight:bold;">${order.name}</td></tr>
-            <tr><td style="padding:5px 0;color:#666666;font-size:13px;">Email</td><td style="padding:5px 0;color:#111111;font-size:13px;">${order.email || "Not provided"}</td></tr>
-            <tr><td style="padding:5px 0;color:#666666;font-size:13px;">Phone</td><td style="padding:5px 0;color:#111111;font-size:13px;">${order.phone}</td></tr>
-            <tr><td style="padding:5px 0;color:#666666;font-size:13px;">City</td><td style="padding:5px 0;color:#111111;font-size:13px;">${order.city}</td></tr>
-            <tr><td style="padding:5px 0;color:#666666;font-size:13px;">Address</td><td style="padding:5px 0;color:#111111;font-size:13px;">${order.address}</td></tr>
-            ${order.note ? `<tr><td style="padding:5px 0;color:#666666;font-size:13px;">Note</td><td style="padding:5px 0;color:#111111;font-size:13px;font-style:italic;">${order.note}</td></tr>` : ""}
+            <tr><td style="padding:5px 0;color:#666666;font-size:13px;width:110px;">Name</td><td style="padding:5px 0;color:#111111;font-size:13px;font-weight:bold;">${esc(order.name)}</td></tr>
+            <tr><td style="padding:5px 0;color:#666666;font-size:13px;">Email</td><td style="padding:5px 0;color:#111111;font-size:13px;">${esc(order.email || "Not provided")}</td></tr>
+            <tr><td style="padding:5px 0;color:#666666;font-size:13px;">Phone</td><td style="padding:5px 0;color:#111111;font-size:13px;">${esc(order.phone)}</td></tr>
+            <tr><td style="padding:5px 0;color:#666666;font-size:13px;">City</td><td style="padding:5px 0;color:#111111;font-size:13px;">${esc(order.city)}</td></tr>
+            <tr><td style="padding:5px 0;color:#666666;font-size:13px;">Address</td><td style="padding:5px 0;color:#111111;font-size:13px;">${esc(order.address)}</td></tr>
+            ${order.note ? `<tr><td style="padding:5px 0;color:#666666;font-size:13px;">Note</td><td style="padding:5px 0;color:#111111;font-size:13px;font-style:italic;">${esc(order.note)}</td></tr>` : ""}
           </table>
           <h2 style="color:#111111;font-size:13px;margin:0 0 14px;letter-spacing:1px;text-transform:uppercase;border-bottom:2px solid #f0f0f0;padding-bottom:10px;">Order Items</h2>
           <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eeeeee;border-radius:6px;overflow:hidden;margin-bottom:20px;">
@@ -78,10 +94,10 @@ function customerOrderConfirmationTemplate(order) {
       (item) => `
     <tr>
       <td style="padding:10px 8px;border-bottom:1px solid #f5f5f5;font-size:13px;color:#111111;">
-        ${item.name}${item.color ? ` <span style="color:#888888;font-size:11px;">(${item.color})</span>` : ""}
+        ${esc(item.name)}${item.color ? ` <span style="color:#888888;font-size:11px;">(${esc(item.color)})</span>` : ""}
       </td>
-      <td style="padding:10px 8px;border-bottom:1px solid #f5f5f5;text-align:center;font-size:13px;color:#555555;">x${item.quantity}</td>
-      <td style="padding:10px 8px;border-bottom:1px solid #f5f5f5;text-align:right;font-size:13px;font-weight:bold;color:#111111;">Rs. ${(item.price * item.quantity).toLocaleString()}</td>
+      <td style="padding:10px 8px;border-bottom:1px solid #f5f5f5;text-align:center;font-size:13px;color:#555555;">x${num(item.quantity)}</td>
+      <td style="padding:10px 8px;border-bottom:1px solid #f5f5f5;text-align:right;font-size:13px;font-weight:bold;color:#111111;">Rs. ${(num(item.price) * num(item.quantity)).toLocaleString()}</td>
     </tr>`
     )
     .join("");
@@ -108,7 +124,7 @@ function customerOrderConfirmationTemplate(order) {
           <p style="color:#d4edda;margin:8px 0 0;font-size:14px;">Thank you for shopping with Xclusive Shop</p>
         </td></tr>
         <tr><td style="padding:32px 40px;">
-          <p style="color:#111111;font-size:15px;margin:0 0 6px;">Hi <strong>${order.name}</strong>,</p>
+          <p style="color:#111111;font-size:15px;margin:0 0 6px;">Hi <strong>${esc(order.name)}</strong>,</p>
           <p style="color:#555555;font-size:14px;line-height:1.7;margin:0 0 28px;">We've received your order and it's now being reviewed. We'll notify you as soon as it's processed and shipped!</p>
           <div style="background:#f8f8f8;border-left:4px solid #18A558;border-radius:0 6px 6px 0;padding:16px 20px;margin-bottom:28px;">
             <p style="margin:0 0 6px;font-size:13px;color:#555555;"><strong>Order ID:</strong> #${shortId}</p>
@@ -133,10 +149,10 @@ function customerOrderConfirmationTemplate(order) {
           </table>
           <h3 style="color:#111111;font-size:13px;margin:0 0 12px;letter-spacing:1px;text-transform:uppercase;">Delivery Address</h3>
           <div style="background:#f8f8f8;border-radius:6px;padding:14px 18px;margin-bottom:24px;">
-            <p style="margin:0 0 4px;font-size:13px;color:#111111;font-weight:bold;">${order.name}</p>
-            <p style="margin:0 0 4px;font-size:13px;color:#555555;">${order.address}</p>
-            <p style="margin:0 0 4px;font-size:13px;color:#555555;">${order.city}</p>
-            <p style="margin:0;font-size:13px;color:#555555;">${order.phone}</p>
+            <p style="margin:0 0 4px;font-size:13px;color:#111111;font-weight:bold;">${esc(order.name)}</p>
+            <p style="margin:0 0 4px;font-size:13px;color:#555555;">${esc(order.address)}</p>
+            <p style="margin:0 0 4px;font-size:13px;color:#555555;">${esc(order.city)}</p>
+            <p style="margin:0;font-size:13px;color:#555555;">${esc(order.phone)}</p>
           </div>
           <p style="color:#555555;font-size:13px;line-height:1.6;margin:0;padding:14px 18px;background:#fffbeb;border-radius:6px;border-left:4px solid #f59e0b;">
             📦 <strong>What's next?</strong> Our team will review your order shortly. You'll receive an email update when it ships with tracking information.
@@ -166,9 +182,9 @@ function statusUpdateTemplate(order, newStatus) {
   const itemsHtml = order.items
     .map((item) => `
     <tr>
-      <td style="padding:8px;border-bottom:1px solid #f5f5f5;font-size:13px;color:#111111;">${item.name}${item.color ? ` <span style="color:#888888;font-size:11px;">(${item.color})</span>` : ""}</td>
-      <td style="padding:8px;border-bottom:1px solid #f5f5f5;text-align:center;font-size:13px;color:#555555;">x${item.quantity}</td>
-      <td style="padding:8px;border-bottom:1px solid #f5f5f5;text-align:right;font-size:13px;font-weight:bold;color:#111111;">Rs. ${(item.price * item.quantity).toLocaleString()}</td>
+      <td style="padding:8px;border-bottom:1px solid #f5f5f5;font-size:13px;color:#111111;">${esc(item.name)}${item.color ? ` <span style="color:#888888;font-size:11px;">(${esc(item.color)})</span>` : ""}</td>
+      <td style="padding:8px;border-bottom:1px solid #f5f5f5;text-align:center;font-size:13px;color:#555555;">x${num(item.quantity)}</td>
+      <td style="padding:8px;border-bottom:1px solid #f5f5f5;text-align:right;font-size:13px;font-weight:bold;color:#111111;">Rs. ${(num(item.price) * num(item.quantity)).toLocaleString()}</td>
     </tr>`)
     .join("");
 
@@ -227,10 +243,10 @@ function trackingTemplate(order, courier, trackingId) {
           <table width="100%" cellpadding="0" cellspacing="0" style="border:2px solid #7C3AED;border-radius:8px;overflow:hidden;margin-bottom:28px;">
             <tr><td style="padding:24px;text-align:center;">
               <p style="margin:0 0 4px;font-size:11px;color:#888888;text-transform:uppercase;letter-spacing:2px;">Courier Company</p>
-              <p style="margin:0 0 20px;font-size:22px;font-weight:bold;color:#111111;">${courier}</p>
+              <p style="margin:0 0 20px;font-size:22px;font-weight:bold;color:#111111;">${esc(courier)}</p>
               <p style="margin:0 0 4px;font-size:11px;color:#888888;text-transform:uppercase;letter-spacing:2px;">Tracking Number</p>
               <div style="background:#f5f3ff;border-radius:6px;padding:14px 20px;display:inline-block;">
-                <p style="margin:0;font-size:22px;font-weight:bold;color:#7C3AED;letter-spacing:3px;">${trackingId}</p>
+                <p style="margin:0;font-size:22px;font-weight:bold;color:#7C3AED;letter-spacing:3px;">${esc(trackingId)}</p>
               </div>
             </td></tr>
           </table>
@@ -307,7 +323,7 @@ export default async function handler(req, res) {
       await sendEmail(
         BREVO_API_KEY,
         ADMIN_EMAIL,
-        `🛍️ New Order #${shortId} — ${order.name}`,
+        `🛍️ New Order #${shortId} — ${esc(order.name)}`,
         adminOrderTemplate(order)
       );
     } else if (type === "customer-order-placed") {

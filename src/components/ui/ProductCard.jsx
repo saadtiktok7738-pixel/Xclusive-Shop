@@ -261,6 +261,20 @@ export const ProductCard = React.memo(function ProductCard({ product }) {
         />
       </div>
 
+      <div className="hidden" aria-hidden="true">
+        <label>
+          Leave this field empty
+          <input
+            type="text"
+            name="website"
+            tabIndex={-1}
+            autoComplete="off"
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+          />
+        </label>
+      </div>
+
       <DialogFooter className="pt-2">
         <Button
           type="submit"

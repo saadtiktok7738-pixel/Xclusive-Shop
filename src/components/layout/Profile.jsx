@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Layout } from "../bonents/mainpage/Layout.jsx";
 import { useAuth } from "../contexts/AuthContext.jsx";
-import { doc, getDoc, updateDoc, collection, onSnapshot, query, where, orderBy } from "firebase/firestore";
+import { doc, getDoc, collection, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "../lib/firebase.js";
 import { Button } from "../ui/button.jsx";
 import { Input } from "../ui/input.jsx";
@@ -36,15 +36,20 @@ export default function Profile() {
       if (userDoc.exists()) setName(userDoc.data().name || "");
     });
 
-    // Real-time listener on top-level orders filtered by userId
+    // Real-time listener on top-level orders filtered by userId (no orderBy to avoid composite index requirement)
     const q = query(
       collection(db, "orders"),
-      where("userId", "==", user.uid),
-      orderBy("createdAt", "desc")
+      where("userId", "==", user.uid)
     );
 
     const unsub = onSnapshot(q, (snap) => {
-      setOrders(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      const docs = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      docs.sort((a, b) => {
+        const ta = a.createdAt?.toMillis?.() ?? 0;
+        const tb = b.createdAt?.toMillis?.() ?? 0;
+        return tb - ta;
+      });
+      setOrders(docs);
     });
 
     return () => unsub();
@@ -56,10 +61,10 @@ export default function Profile() {
 
     setIsSaving(true);
     try {
-      await updateDoc(doc(db, "users", user.uid), { name });
-      toast.success("Profile updated successfully");
-    } catch (error) {
-      console.error(error);
+      // Under the Firestore rules, only admins can update user docs.
+      // Profile name editing is disabled for regular users.
+      toast.info("Profile name can only be updated by an administrator.");
+    } catch {
       toast.error("Failed to update profile");
     } finally {
       setIsSaving(false);
@@ -159,7 +164,7 @@ return (
                         </span>
                       </div>
                       <div className="text-[11px] md:text-xs text-muted-foreground">
-                        {new Date(order.createdAt).toLocaleString()}
+                        {order.createdAt?.toDate ? order.createdAt.toDate().toLocaleString() : new Date(order.createdAt || 0).toLocaleString()}
                       </div>
                     </div>
 
@@ -223,22 +228,22 @@ return (
                       <span className="font-semibold text-foreground">
                         Ship to:
                       </span>{" "}
-                      {order.name}, {order.address}, {order.city}
+                      {order.customerName}, {order.customerAddress}, {order.customerCity}
                     </div>
 
                     <div className="text-[11px] md:text-xs text-muted-foreground">
                       <span className="font-semibold text-foreground">
                         Phone:
                       </span>{" "}
-                      {order.phone}
+                      {order.customerPhone}
                     </div>
 
-                    {order.note && (
+                    {order.notes && (
                       <div className="text-[11px] md:text-xs text-muted-foreground">
                         <span className="font-semibold text-foreground">
                           Note:
                         </span>{" "}
-                        {order.note}
+                        {order.notes}
                       </div>
                     )}
 

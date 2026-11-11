@@ -148,12 +148,16 @@ export default function ProductForm() {
   const submit = async (e) => {
     e.preventDefault();
 
-    if (!name.trim()) return toast.error("Name is required");
-    if (!description.trim()) return toast.error("Description is required");
+    if (!name.trim() || name.trim().length > 200) return toast.error("Name is required (max 200 characters)");
+    if (!description.trim() || description.trim().length > 5000) return toast.error("Description is required (max 5000 characters)");
 
     const priceN = Number(price);
-    if (!priceN || priceN <= 0)
-      return toast.error("Valid price required");
+    if (!Number.isFinite(priceN) || priceN < 0)
+      return toast.error("Valid price required (must be ≥ 0)");
+
+    const stockN = Number(stock);
+    if (!Number.isInteger(stockN) || stockN < 0)
+      return toast.error("Stock must be a whole number ≥ 0");
 
     if (originalPrice && Number(originalPrice) < priceN)
       return toast.error("Cutted price must be ≥ price");
@@ -166,6 +170,15 @@ export default function ProductForm() {
 
     if (!category) return toast.error("Select a category");
     if (!images.length) return toast.error("Add at least one image");
+
+    for (const img of images) {
+      if (!img.startsWith("https://") && !img.startsWith("data:image/jpeg") && !img.startsWith("data:image/png") && !img.startsWith("data:image/webp")) {
+        return toast.error("Invalid image format. Use https URLs or JPEG/PNG/WebP uploads.");
+      }
+      if (img.startsWith("data:") && img.length > 500_000) {
+        return toast.error("One or more images exceed 500 KB. Please use smaller images.");
+      }
+    }
 
     setSaving(true);
     try {
@@ -185,7 +198,7 @@ export default function ProductForm() {
         discountPercent: discountPercent ? Number(discountPercent) : 0,
         images,
         colors,
-        stock: Number(stock) || 0,
+        stock: stockN,
         isHot,
         isNewArrival,
         isLimitedOffer,
