@@ -1,258 +1,103 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { useAuth } from "./AuthContext";
 import { useData } from "./DataContext";
-import {
-  doc,
-  setDoc,
-  updateDoc,
-  collection,
-  getDocs,
-  deleteDoc,
-} from "firebase/firestore";
-import { db } from "../lib/firebase.js";
 import { toast } from "sonner";
 
 const CartContext = createContext(undefined);
 
+const MAX_QUANTITY = 20;
+
+function readStoredList(key) {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function sanitizeCartItem(item) {
+  if (!item || typeof item.productId !== "string" || !item.productId) return null;
+  const quantity = Number(item.quantity);
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_QUANTITY) return null;
+  return {
+    productId: item.productId,
+    quantity,
+    addedAt: typeof item.addedAt === "string" ? item.addedAt : new Date().toISOString(),
+    color: typeof item.color === "string" ? item.color : null,
+  };
+}
+
 export function CartProvider({ children }) {
-  const { user } = useAuth();
   const { products } = useData();
 
-  const [cart, setCart] = useState([]);
-  const [wishlist, setWishlist] = useState([]);
+  const [cart, setCart] = useState(() =>
+    readStoredList("cart").map(sanitizeCartItem).filter(Boolean)
+  );
+  const [wishlist, setWishlist] = useState(() =>
+    readStoredList("wishlist").filter((id) => typeof id === "string")
+  );
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [cartTotal, setCartTotal] = useState(0);
 
-  // Guest cart load
   useEffect(() => {
-    if (!user) {
-      const localCart = localStorage.getItem("cart");
-      const localWishlist = localStorage.getItem("wishlist");
+    localStorage.setItem("cart", JSON.stringify(cart));
+  }, [cart]);
 
-      if (localCart) setCart(JSON.parse(localCart));
-      if (localWishlist) setWishlist(JSON.parse(localWishlist));
-    }
-  }, [user]);
-
-  // Load Firestore data when user logs in
   useEffect(() => {
-    async function loadUserData() {
-      if (!user) return;
+    localStorage.setItem("wishlist", JSON.stringify(wishlist));
+  }, [wishlist]);
 
-      try {
-        // CART
-        const cartSnapshot = await getDocs(
-          collection(db, "users", user.uid, "cart")
-        );
+  const cartTotal = cart.reduce((total, item) => {
+    const product = products.find((p) => p.id === item.productId);
+    return product ? total + product.price * item.quantity : total;
+  }, 0);
 
-        const firestoreCart = cartSnapshot.docs.map((d) => ({
-          productId: d.id,
-          ...d.data(),
-        }));
-
-        const localCartStr = localStorage.getItem("cart");
-
-        if (localCartStr) {
-          const localCart = JSON.parse(localCartStr);
-
-          for (const item of localCart) {
-            const exists = firestoreCart.find(
-              (c) => c.productId === item.productId
-            );
-
-            if (!exists) {
-              await setDoc(
-                doc(db, "users", user.uid, "cart", item.productId),
-                {
-                  quantity: item.quantity,
-                  addedAt: item.addedAt,
-                  color: item.color ?? null,
-                }
-              );
-
-              firestoreCart.push(item);
-            }
-          }
-
-          localStorage.removeItem("cart");
-        }
-
-        setCart(firestoreCart);
-
-        // WISHLIST
-        const wishlistSnapshot = await getDocs(
-          collection(db, "users", user.uid, "wishlist")
-        );
-
-        const firestoreWishlist = wishlistSnapshot.docs.map((d) => d.id);
-
-        const localWishlistStr = localStorage.getItem("wishlist");
-
-        if (localWishlistStr) {
-          const localWishlist = JSON.parse(localWishlistStr);
-
-          for (const id of localWishlist) {
-            if (!firestoreWishlist.includes(id)) {
-              await setDoc(
-                doc(db, "users", user.uid, "wishlist", id),
-                {
-                  addedAt: new Date().toISOString(),
-                }
-              );
-
-              firestoreWishlist.push(id);
-            }
-          }
-
-          localStorage.removeItem("wishlist");
-        }
-
-        setWishlist(firestoreWishlist);
-      } catch (error) {
-        console.error("Error loading user data", error);
-      }
-    }
-
-    loadUserData();
-  }, [user]);
-
-  // Save guest data
-  useEffect(() => {
-    if (!user) {
-      localStorage.setItem("cart", JSON.stringify(cart));
-      localStorage.setItem("wishlist", JSON.stringify(wishlist));
-    }
-  }, [cart, wishlist, user]);
-
-  // CART TOTAL
-  useEffect(() => {
-    let total = 0;
-
-    cart.forEach((item) => {
-      const product = products.find((p) => p.id === item.productId);
-      if (product) {
-        total += product.price * item.quantity;
-      }
-    });
-
-    setCartTotal(total);
-  }, [cart, products]);
-
-  // ADD TO CART
-  const addToCart = async (productId, quantity = 1, color) => {
-    const index = cart.findIndex((i) => i.productId === productId);
-    let newCart = [...cart];
-
-    if (index >= 0) {
-      newCart[index] = {
-        ...newCart[index],
-        quantity: newCart[index].quantity + quantity,
-        ...(color !== undefined ? { color } : {}),
-      };
-    } else {
-      newCart.push({
-        productId,
-        quantity,
-        addedAt: new Date().toISOString(),
-        color: color ?? null,
-      });
-    }
-
-    setCart(newCart);
-    setIsCartOpen(true);
-    toast.success("Added to cart");
-
-    if (user) {
-      const ref = doc(db, "users", user.uid, "cart", productId);
-
+  const addToCart = (productId, quantity = 1, color) => {
+    setCart((prev) => {
+      const index = prev.findIndex((i) => i.productId === productId);
       if (index >= 0) {
-        await updateDoc(ref, {
-          quantity: newCart[index].quantity,
+        const next = [...prev];
+        next[index] = {
+          ...next[index],
+          quantity: Math.min(MAX_QUANTITY, next[index].quantity + quantity),
           ...(color !== undefined ? { color } : {}),
-        });
-      } else {
-        await setDoc(ref, {
-          quantity,
+        };
+        return next;
+      }
+      return [
+        ...prev,
+        {
+          productId,
+          quantity: Math.min(MAX_QUANTITY, quantity),
           addedAt: new Date().toISOString(),
           color: color ?? null,
-        });
-      }
-    }
+        },
+      ];
+    });
+    setIsCartOpen(true);
+    toast.success("Added to cart");
   };
 
-  // REMOVE
-  const removeFromCart = async (productId) => {
-    setCart(cart.filter((i) => i.productId !== productId));
-
-    if (user) {
-      try {
-        await deleteDoc(doc(db, "users", user.uid, "cart", productId));
-      } catch {}
-    }
+  const removeFromCart = (productId) => {
+    setCart((prev) => prev.filter((i) => i.productId !== productId));
   };
 
-  // UPDATE QUANTITY
-  const updateQuantity = async (productId, quantity) => {
-    if (quantity < 1) return;
-
-    setCart(
-      cart.map((i) =>
-        i.productId === productId ? { ...i, quantity } : i
-      )
+  const updateQuantity = (productId, quantity) => {
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_QUANTITY) return;
+    setCart((prev) =>
+      prev.map((i) => (i.productId === productId ? { ...i, quantity } : i))
     );
-
-    if (user) {
-      await updateDoc(doc(db, "users", user.uid, "cart", productId), {
-        quantity,
-      });
-    }
   };
 
-  // CLEAR CART
-  const clearCart = async () => {
-    const items = [...cart];
+  const clearCart = () => {
     setCart([]);
-
-    if (user) {
-      await Promise.all(
-        items.map((it) =>
-          deleteDoc(
-            doc(db, "users", user.uid, "cart", it.productId)
-          ).catch(() => null)
-        )
-      );
-    }
   };
 
-  // WISHLIST
-  const toggleWishlist = async (productId) => {
-    if (!user) {
-      toast.error("Please sign in to save to wishlist");
-      return;
-    }
-
+  const toggleWishlist = (productId) => {
     const exists = wishlist.includes(productId);
-    let newList;
-
-    if (exists) {
-      newList = wishlist.filter((id) => id !== productId);
-      try {
-        await deleteDoc(
-          doc(db, "users", user.uid, "wishlist", productId)
-        );
-      } catch {}
-    } else {
-      newList = [...wishlist, productId];
-      await setDoc(
-        doc(db, "users", user.uid, "wishlist", productId),
-        {
-          addedAt: new Date().toISOString(),
-        }
-      );
-      toast.success("Added to wishlist");
-    }
-
-    setWishlist(newList);
+    setWishlist((prev) =>
+      exists ? prev.filter((id) => id !== productId) : [...prev, productId]
+    );
+    if (!exists) toast.success("Added to wishlist");
   };
 
   return (

@@ -10,8 +10,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Minus, Plus, ShoppingCart, Zap, Truck, Headphones, RefreshCcw, Star } from "lucide-react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { collection, addDoc, updateDoc, doc, getDoc } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { db } from "../lib/firebase.js";
+import { placeOrder, notifyOrder, OrderError } from "../lib/orderService.js";
 import { Helmet } from "react-helmet-async";
 
 const ALL_REVIEWS = [
@@ -204,6 +205,7 @@ export default function ProductDetail() {
   const [buyAddress, setBuyAddress] = useState("");
   const [buyCity, setBuyCity] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [buyWebsite, setBuyWebsite] = useState("");
 
   useEffect(() => {
     if (product?.colors?.[0]) {
@@ -252,82 +254,23 @@ export default function ProductDetail() {
 
   const placeBuyNowOrder = async (e) => {
     e.preventDefault();
-
-    if (!buyEmail.trim() || !buyName.trim() || !buyPhone.trim() || !buyAddress.trim() || !buyCity.trim()) {
-      toast.error("Please fill in all fields");
-      return;
-    }
+    if (submitting || buyWebsite) return;
 
     setSubmitting(true);
 
     try {
-      const order = {
-        userId: user?.uid || "guest",
-        name: buyName.trim(),
-        phone: buyPhone.trim(),
-        email: buyEmail.trim(),
-        address: buyAddress.trim(),
-        city: buyCity.trim(),
-        note: null,
-        items: [
-          {
-            productId: product.id,
-            name: product.name,
-            price: product.price,
-            quantity,
-            image: product.images?.[0] || null,
-            color: selectedColor,
-          },
-        ],
-        subtotal: product.price * quantity,
-        shipping: 0,
-        total: product.price * quantity,
-        status: "pending",
-        createdAt: new Date().toISOString(),
-      };
-
-      const ref = await addDoc(collection(db, "orders"), order);
-      const shortId = ref.id.slice(0, 8).toUpperCase();
-
-      await updateDoc(doc(db, "orders", ref.id), {
-        orderId: ref.id,
-        shortId,
+      const result = await placeOrder({
+        customer: {
+          name: buyName,
+          email: buyEmail,
+          phone: buyPhone,
+          address: buyAddress,
+          city: buyCity,
+        },
+        cartItems: [{ productId: product.id, quantity, color: selectedColor }],
       });
 
-      if (user) {
-        await addDoc(collection(db, "users", user.uid, "orders"), {
-          ...order,
-          orderId: ref.id,
-          shortId,
-        });
-      } else {
-        try {
-          const raw = localStorage.getItem("pendingGuestOrders");
-          const list = raw ? JSON.parse(raw) : [];
-          if (!list.includes(ref.id)) list.push(ref.id);
-          localStorage.setItem("pendingGuestOrders", JSON.stringify(list));
-        } catch (err) {}
-      }
-
-      const fullOrder = { ...order, orderId: ref.id, shortId };
-
-      // Admin notification
-      fetch("/api/send-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "order-placed", order: fullOrder }),
-      }).catch(() => {});
-
-      // Customer confirmation
-      fetch("/api/send-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "customer-order-placed",
-          order: fullOrder,
-          customerEmail: buyEmail.trim(),
-        }),
-      }).catch(() => {});
+      notifyOrder(result);
 
       toast.success("Order placed successfully!");
       setBuyOpen(false);
@@ -337,10 +280,9 @@ export default function ProductDetail() {
       setBuyAddress("");
       setBuyCity("");
 
-      setLocation(`/thankyou?orderId=${ref.id}`);
+      setLocation(`/thankyou?orderId=${result.orderId}`);
     } catch (err) {
-      console.error(err);
-      toast.error("Failed to place order");
+      toast.error(err instanceof OrderError ? err.message : "Failed to place order");
     } finally {
       setSubmitting(false);
     }
@@ -705,6 +647,20 @@ export default function ProductDetail() {
                   placeholder="House, Street, Area"
                   required
                 />
+              </div>
+
+              <div className="hidden" aria-hidden="true">
+                <label>
+                  Leave this field empty
+                  <input
+                    type="text"
+                    name="website"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    value={buyWebsite}
+                    onChange={(e) => setBuyWebsite(e.target.value)}
+                  />
+                </label>
               </div>
 
               <DialogFooter className="pt-2">

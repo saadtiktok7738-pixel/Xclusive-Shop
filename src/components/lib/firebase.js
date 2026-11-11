@@ -5,17 +5,32 @@ import {
   initializeFirestore,
   persistentLocalCache,
 } from "firebase/firestore";
+import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyARrOUzkwD6bBD_16bHrPTDJOOK7Wdu_3w",
-  authDomain: "replit-71218.firebaseapp.com",
-  projectId: "replit-71218",
-  storageBucket: "replit-71218.firebasestorage.app",
-  messagingSenderId: "1011849410012",
-  appId: "1:1011849410012:web:5777989a3d93474fcd0b19",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
 export const app = initializeApp(firebaseConfig);
+
+const recaptchaSiteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+
+if (import.meta.env.DEV && import.meta.env.VITE_APPCHECK_DEBUG_TOKEN) {
+  self.FIREBASE_APPCHECK_DEBUG_TOKEN = import.meta.env.VITE_APPCHECK_DEBUG_TOKEN;
+}
+
+if (recaptchaSiteKey) {
+  initializeAppCheck(app, {
+    provider: new ReCaptchaV3Provider(recaptchaSiteKey),
+    isTokenAutoRefreshEnabled: true,
+  });
+}
+
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
@@ -25,7 +40,7 @@ try {
   db = initializeFirestore(app, {
     localCache: persistentLocalCache(),
   });
-} catch (e) {
+} catch {
   db = getFirestore(app);
 }
 

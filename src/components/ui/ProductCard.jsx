@@ -12,8 +12,7 @@ import {
 } from "./dialog.jsx";
 import { Input } from "./input.jsx";
 import { Button } from "./button.jsx";
-import { collection, addDoc, updateDoc, doc } from "firebase/firestore";
-import { db } from "../lib/firebase.js";
+import { placeOrder, notifyOrder, OrderError } from "../lib/orderService.js";
 import { toast } from "sonner";
 
 
@@ -31,6 +30,7 @@ export const ProductCard = React.memo(function ProductCard({ product }) {
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [website, setWebsite] = useState("");
 
   React.useEffect(() => {
     if (user?.email && !email) setEmail(user.email);
@@ -57,70 +57,17 @@ export const ProductCard = React.memo(function ProductCard({ product }) {
 
   const placeQuickOrder = async (e) => {
     e.preventDefault();
-
-    if (!email.trim() || !name.trim() || !phone.trim() || !address.trim() || !city.trim()) {
-      toast.error("Please fill in all fields");
-      return;
-    }
+    if (submitting || website) return;
 
     setSubmitting(true);
 
     try {
-      const order = {
-        userId: user?.uid || "guest",
-        email: email.trim(),
-        name: name.trim(),
-        phone: phone.trim(),
-        address: address.trim(),
-        city: city.trim(),
-        note: null,
-        items: [
-          {
-            productId: product.id,
-            name: product.name,
-            price: product.price,
-            quantity: 1,
-            image: product.images?.[0] || null,
-            color: null,
-          },
-        ],
-        subtotal: product.price,
-        shipping: 0,
-        total: product.price,
-        status: "pending",
-        createdAt: new Date().toISOString(),
-      };
-
-      const ref = await addDoc(collection(db, "orders"), order);
-      const shortId = ref.id.slice(0, 8).toUpperCase();
-
-      await updateDoc(doc(db, "orders", ref.id), {
-        orderId: ref.id,
-        shortId,
+      const result = await placeOrder({
+        customer: { name, email, phone, address, city },
+        cartItems: [{ productId: product.id, quantity: 1 }],
       });
 
-      if (user) {
-        await addDoc(collection(db, "users", user.uid, "orders"), {
-          ...order,
-          orderId: ref.id,
-          shortId,
-        });
-      } else {
-        try {
-          const raw = localStorage.getItem("pendingGuestOrders");
-          const list = raw ? JSON.parse(raw) : [];
-          if (!list.includes(ref.id)) list.push(ref.id);
-          localStorage.setItem("pendingGuestOrders", JSON.stringify(list));
-        } catch {}
-      }
-
-      const fullOrder = { ...order, orderId: ref.id, shortId };
-
-      fetch("/api/send-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "order-placed", order: fullOrder }),
-      }).catch(() => {});
+      notifyOrder(result);
 
       toast.success("Order placed successfully!");
       setBuyOpen(false);
@@ -129,10 +76,9 @@ export const ProductCard = React.memo(function ProductCard({ product }) {
       setPhone("");
       setAddress("");
       setCity("");
-      setLocation("/thankyou");
+      setLocation(`/thankyou?orderId=${result.orderId}`);
     } catch (err) {
-      console.error(err);
-      toast.error("Failed to place order");
+      toast.error(err instanceof OrderError ? err.message : "Failed to place order");
     } finally {
       setSubmitting(false);
     }

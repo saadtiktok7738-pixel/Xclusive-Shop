@@ -7,8 +7,7 @@ import { useShippingSettings } from "../hooks/useShippingSettings.js";
 import { Button } from "../ui/button.jsx";
 import { Input } from "../ui/input.jsx";
 import { useLocation } from "wouter";
-import { collection, addDoc, updateDoc, doc } from "firebase/firestore";
-import { db } from "../lib/firebase.js";
+import { placeOrder, notifyOrder, OrderError } from "../lib/orderService.js";
 import { toast } from "sonner";
 import { Helmet } from "react-helmet-async";
 
@@ -26,6 +25,7 @@ export default function Checkout() {
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [note, setNote] = useState("");
+  const [website, setWebsite] = useState("");
 
   // Auto-fill email from logged-in user
   useEffect(() => {
@@ -43,94 +43,23 @@ export default function Checkout() {
 
   const handleCheckout = async (e) => {
     e.preventDefault();
-
-    if (!email.trim() || !name.trim() || !phone.trim() || !address.trim() || !city.trim()) {
-      toast.error("Please fill in all required fields");
-      return;
-    }
+    if (isProcessing || website) return;
 
     setIsProcessing(true);
 
     try {
-      const items = cart
-        .map((c) => {
-          const p = products.find((x) => x.id === c.productId);
-          if (!p) return null;
-          return {
-            productId: p.id,
-            name: p.name,
-            price: p.price,
-            quantity: c.quantity,
-            image: p.images?.[0] ?? null,
-            color: c.color ?? null,
-          };
-        })
-        .filter(Boolean);
-
-      const order = {
-        userId: user?.uid || "guest",
-        name: name.trim(),
-        phone: phone.trim(),
-        email: email.trim(),
-        address: address.trim(),
-        city: city.trim(),
-        note: note.trim() || null,
-        items,
-        subtotal: cartTotal,
+      const result = await placeOrder({
+        customer: { name, email, phone, address, city, notes: note },
+        cartItems: cart,
         shipping: shippingCost,
-        total: orderTotal,
-        status: "pending",
-        createdAt: new Date().toISOString(),
-      };
-
-      const ref = await addDoc(collection(db, "orders"), order);
-      const shortId = ref.id.slice(0, 8).toUpperCase();
-
-      await updateDoc(doc(db, "orders", ref.id), {
-        orderId: ref.id,
-        shortId,
       });
 
-      if (user) {
-        await addDoc(
-          collection(db, "users", user.uid, "orders"),
-          { ...order, orderId: ref.id, shortId }
-        );
-      } else {
-        try {
-          const raw = localStorage.getItem("pendingGuestOrders");
-          const list = raw ? JSON.parse(raw) : [];
-          if (!list.includes(ref.id)) list.push(ref.id);
-          localStorage.setItem("pendingGuestOrders", JSON.stringify(list));
-        } catch {}
-      }
-
-      const fullOrder = { ...order, orderId: ref.id, shortId };
-
-      // Admin notification (fire-and-forget)
-      fetch("/api/send-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "order-placed", order: fullOrder }),
-      }).catch(() => {});
-
-      // Customer confirmation (fire-and-forget)
-      fetch("/api/send-order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "customer-order-placed",
-          order: fullOrder,
-          customerEmail: email.trim(),
-        }),
-      }).catch(() => {});
-
-      await clearCart();
+      notifyOrder(result);
+      clearCart();
       toast.success("Order placed successfully!");
-      setLocation(`/thankyou?orderId=${ref.id}`);
+      setLocation(`/thankyou?orderId=${result.orderId}`);
     } catch (error) {
-      console.error(error);
-      toast.error("Failed to place order");
+      toast.error(error instanceof OrderError ? error.message : "Failed to place order");
       setIsProcessing(false);
     }
   };
@@ -260,6 +189,20 @@ export default function Checkout() {
                   <input type="radio" checked readOnly id="cod" />
                   <label htmlFor="cod">Cash on Delivery (COD)</label>
                 </div>
+              </div>
+
+              <div className="hidden" aria-hidden="true">
+                <label>
+                  Leave this field empty
+                  <input
+                    type="text"
+                    name="website"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    value={website}
+                    onChange={(e) => setWebsite(e.target.value)}
+                  />
+                </label>
               </div>
             </form>
           </div>

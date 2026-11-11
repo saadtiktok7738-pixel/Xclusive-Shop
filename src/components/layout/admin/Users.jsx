@@ -19,10 +19,8 @@ export default function Users() {
 
   const makeAdmin = async (u) => {
     try {
-      await updateDoc(doc(db, "users", u.uid), {
-        role: u.role === "admin" ? "user" : "admin",
-      });
-      toast.success(u.role === "admin" ? "Demoted to user" : "Promoted to admin");
+      await updateDoc(doc(db, "users", u.uid), { isAdmin: !u.isAdmin });
+      toast.success(u.isAdmin ? "Demoted to user" : "Promoted to admin");
     } catch {
       toast.error("Failed to update");
     }
@@ -43,7 +41,6 @@ export default function Users() {
       return;
     }
     toast(`Delete user ${u.email}?`, {
-      description: "Their cart and wishlist data will also be removed.",
       action: { label: "Delete", onClick: () => void doRemove(u) },
       cancel: { label: "Cancel", onClick: () => {} },
       duration: 8000,
@@ -63,7 +60,7 @@ export default function Users() {
         <div>
           <h1 className="text-2xl font-bold">Users</h1>
           <p className="text-sm text-neutral-500">
-            {users.length} users · {users.filter((u) => u.role === "admin").length} admins
+            {users.length} users · {users.filter((u) => u.isAdmin === true).length} admins
           </p>
         </div>
 
@@ -113,17 +110,17 @@ export default function Users() {
                 <td className="px-4 py-3">
                   <span
                     className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
-                      u.role === "admin"
+                      u.isAdmin === true
                         ? "bg-[#a8e063]/30 text-[#3a6a18]"
                         : "bg-neutral-100 text-neutral-600"
                     }`}
                   >
-                    {u.role || "user"}
+                    {u.isAdmin === true ? "admin" : "user"}
                   </span>
                 </td>
 
                 <td className="px-4 py-3 text-xs text-neutral-500">
-                  {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "—"}
+                  {u.createdAt?.toDate ? u.createdAt.toDate().toLocaleDateString() : "—"}
                 </td>
 
                 <td className="px-4 py-3 text-right">
@@ -131,14 +128,14 @@ export default function Users() {
                     <button
                       onClick={() => makeAdmin(u)}
                       className={`inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs ${
-                        u.role === "admin"
+                        u.isAdmin === true
                           ? "border-neutral-300 text-neutral-600 hover:bg-neutral-100"
                           : "border-[#56ab2f] text-[#3a6a18] hover:bg-[#a8e063]/10"
                       }`}
                       data-testid={`button-toggle-admin-${u.uid}`}
                     >
                       <Crown className="h-3 w-3" />
-                      {u.role === "admin" ? "Remove admin" : "Make admin"}
+                      {u.isAdmin === true ? "Remove admin" : "Make admin"}
                     </button>
 
                     <button
