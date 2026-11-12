@@ -25,6 +25,7 @@ import {
   ShoppingBag,
   TrendingUp,
   Package,
+  Activity,
 } from "lucide-react";
 
 export default function Dashboard() {
