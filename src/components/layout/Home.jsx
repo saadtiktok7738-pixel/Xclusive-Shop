@@ -135,26 +135,26 @@ export default function Home() {
   return (
     <>
       <Helmet>
-        <title>Xclusive Shop | Premium Fashion & Lifestyle Store</title>
+        <title>Sinosphere | Premium Fashion & Lifestyle Store</title>
         <meta
           name="description"
-          content="Xclusive Shop offers premium quality clothing and lifestyle products across Pakistan. Shop the latest trends with fast delivery and COD available."
+          content="Sinosphere offers premium quality clothing and lifestyle products across Pakistan. Shop the latest trends with fast delivery and COD available."
         />
         <meta
           name="keywords"
-          content="Xclusive Shop, fashion Pakistan, clothing store, online shopping, lifestyle products"
+          content="Sinosphere, fashion Pakistan, clothing store, online shopping, lifestyle products"
         />
 
-        <meta property="og:title" content="Xclusive Shop | Premium Fashion Store" />
+        <meta property="og:title" content="Sinosphere | Premium Fashion Store" />
         <meta
           property="og:description"
-          content="Shop premium clothing and lifestyle products at Xclusive Shop with fast delivery across Pakistan."
+          content="Shop premium clothing and lifestyle products at Sinosphere with fast delivery across Pakistan."
         />
         <meta property="og:type" content="website" />
-        <meta property="og:site_name" content="Xclusive Shop" />
+        <meta property="og:site_name" content="Sinosphere" />
 
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Xclusive Shop" />
+        <meta name="twitter:title" content="Sinosphere" />
         <meta
           name="twitter:description"
           content="Premium fashion & lifestyle shopping in Pakistan."

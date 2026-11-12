@@ -4,7 +4,7 @@ import React from "react";
 // Brand config — change these two values to update the logo everywhere.
 // =====================================================================
 export const LOGO_IMAGE = "/logo.png";
-export const BRAND_NAME = "Xclusive Shop";
+export const BRAND_NAME = "Sinosphere";
 // =====================================================================
 
 export function Logo({
