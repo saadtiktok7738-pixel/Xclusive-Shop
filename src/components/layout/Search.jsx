@@ -13,8 +13,8 @@ export default function Search() {
 
   const results = products.filter(
     (p) =>
-      p.name.toLowerCase().includes(query.toLowerCase()) ||
-      p.description.toLowerCase().includes(query.toLowerCase())
+      (p.name || "").toLowerCase().includes(query.toLowerCase()) ||
+      (p.description || "").toLowerCase().includes(query.toLowerCase())
   );
 
   return (
@@ -26,7 +26,7 @@ export default function Search() {
 
       <meta
         name="description"
-        content={`Search results for ${query}. ${resultsCount} products found on Xclusive Shop.`}
+        content={`Search results for ${query}. ${results.length} products found on Xclusive Shop.`}
       />
 
       <meta
