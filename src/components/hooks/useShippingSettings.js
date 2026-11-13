@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
-import { db } from "../lib/firebase.js";
+import { db, hasFirebaseConfig } from "../lib/firebase.js";
 import { doc, onSnapshot, setDoc } from "firebase/firestore";
-
-const SETTINGS_DOC = doc(db, "settings", "shipping");
 
 const DEFAULT = {
   type: "free",
@@ -14,6 +12,13 @@ export function useShippingSettings() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!hasFirebaseConfig) {
+      setLoading(false);
+      return;
+    }
+
+    const SETTINGS_DOC = doc(db, "settings", "shipping");
+
     const unsub = onSnapshot(
       SETTINGS_DOC,
       (snap) => {
@@ -21,7 +26,6 @@ export function useShippingSettings() {
         setLoading(false);
       },
       () => {
-        // Permission-denied for non-admins is expected; fall back to free shipping.
         setSettings(DEFAULT);
         setLoading(false);
       }
@@ -31,7 +35,8 @@ export function useShippingSettings() {
   }, []);
 
   const saveSettings = async (next) => {
-    await setDoc(SETTINGS_DOC, next);
+    if (!hasFirebaseConfig) return;
+    await setDoc(doc(db, "settings", "shipping"), next);
   };
 
   const shippingCost =

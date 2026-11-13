@@ -16,32 +16,42 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-export const app = initializeApp(firebaseConfig);
+const hasFirebaseConfig = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId);
 
-const recaptchaSiteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+let app = null;
+let auth = null;
+let db = null;
+const googleProvider = new GoogleAuthProvider();
 
-if (import.meta.env.DEV && import.meta.env.VITE_APPCHECK_DEBUG_TOKEN) {
-  self.FIREBASE_APPCHECK_DEBUG_TOKEN = import.meta.env.VITE_APPCHECK_DEBUG_TOKEN;
+if (hasFirebaseConfig) {
+  app = initializeApp(firebaseConfig);
+
+  const recaptchaSiteKey = import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+
+  if (import.meta.env.DEV && import.meta.env.VITE_APPCHECK_DEBUG_TOKEN) {
+    self.FIREBASE_APPCHECK_DEBUG_TOKEN = import.meta.env.VITE_APPCHECK_DEBUG_TOKEN;
+  }
+
+  if (recaptchaSiteKey) {
+    try {
+      initializeAppCheck(app, {
+        provider: new ReCaptchaV3Provider(recaptchaSiteKey),
+        isTokenAutoRefreshEnabled: true,
+      });
+    } catch {
+      // App Check initialization can fail in dev without a valid token; safe to ignore
+    }
+  }
+
+  auth = getAuth(app);
+
+  try {
+    db = initializeFirestore(app, {
+      localCache: persistentLocalCache(),
+    });
+  } catch {
+    db = getFirestore(app);
+  }
 }
 
-if (recaptchaSiteKey) {
-  initializeAppCheck(app, {
-    provider: new ReCaptchaV3Provider(recaptchaSiteKey),
-    isTokenAutoRefreshEnabled: true,
-  });
-}
-
-export const auth = getAuth(app);
-export const googleProvider = new GoogleAuthProvider();
-
-let db;
-
-try {
-  db = initializeFirestore(app, {
-    localCache: persistentLocalCache(),
-  });
-} catch {
-  db = getFirestore(app);
-}
-
-export { db };
+export { app, auth, googleProvider, db, hasFirebaseConfig };

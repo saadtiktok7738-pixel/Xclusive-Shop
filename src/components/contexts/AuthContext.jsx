@@ -6,7 +6,7 @@ import {
   getRedirectResult,
   signOut,
 } from "firebase/auth";
-import { auth, googleProvider, db } from "../lib/firebase.js";
+import { auth, googleProvider, db, hasFirebaseConfig } from "../lib/firebase.js";
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { useLocation } from "wouter";
 
@@ -19,6 +19,11 @@ export function AuthProvider({ children }) {
   const [, setLocation] = useLocation();
 
   useEffect(() => {
+    if (!hasFirebaseConfig) {
+      setLoading(false);
+      return;
+    }
+
     getRedirectResult(auth).catch(() => {});
 
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -55,6 +60,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const signInWithGoogle = async () => {
+    if (!hasFirebaseConfig) return;
     try {
       await signInWithPopup(auth, googleProvider);
       setLocation("/");
@@ -77,6 +83,7 @@ export function AuthProvider({ children }) {
   };
 
   const logout = async () => {
+    if (!hasFirebaseConfig) return;
     await signOut(auth);
     setUser(null);
     setIsAdmin(false);
@@ -102,7 +109,7 @@ export function useAuth() {
   const context = useContext(AuthContext);
 
   if (context === undefined) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error("useAuth must be used within AuthProvider");
   }
 
   return context;

@@ -1,7 +1,7 @@
 // DataContext — provides static catalogue data with caching
 
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import { db } from "../lib/firebase.js";
+import { db, hasFirebaseConfig } from "../lib/firebase.js";
 import { appCache, TTL } from "../lib/cache.js";
 import { collection, getDocs, query, orderBy } from "firebase/firestore";
 
@@ -56,6 +56,11 @@ export function DataProvider({ children }) {
     const needProducts = force || appCache.isStale(KEY_PRODUCTS);
     const needCategories = force || appCache.isStale(KEY_CATEGORIES);
     const needBanners = force || appCache.isStale(KEY_BANNERS);
+
+    if (!hasFirebaseConfig) {
+      setLoading(false);
+      return;
+    }
 
     if (!needProducts && !needCategories && !needBanners) {
       setLoading(false);

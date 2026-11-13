@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { addDoc, collection, doc, getDoc, serverTimestamp } from "firebase/firestore";
-import { auth, db } from "./firebase.js";
+import { auth, db, hasFirebaseConfig } from "./firebase.js";
 
 const ORDER_COOLDOWN_MS = 30_000;
 const COOLDOWN_KEY = "lastOrderAttemptAt";
@@ -44,6 +44,10 @@ export function isOrderCooldownActive() {
 }
 
 export async function placeOrder({ customer, cartItems, shipping = 0 }) {
+  if (!hasFirebaseConfig) {
+    throw new OrderError("Orders are not available at this time.");
+  }
+
   if (isOrderCooldownActive()) {
     throw new OrderError("Please wait a moment before placing another order.");
   }
