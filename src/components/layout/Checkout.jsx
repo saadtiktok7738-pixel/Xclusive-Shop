@@ -267,7 +267,7 @@ export default function Checkout() {
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
-    (Free delivery charges on advance payment)
+    (Free shipping on advance payment)
   </p>
               </div>
 
