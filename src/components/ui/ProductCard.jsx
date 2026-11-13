@@ -195,7 +195,7 @@ export const ProductCard = React.memo(function ProductCard({ product }) {
       </DialogTitle>
 
       <p className="text-xs text-muted-foreground line-clamp-1">
-        {product.name} — Rs. {product.price.toLocaleString()}
+                {product.name} — Rs. {product.price.toLocaleString()} + 250 (Delivery Charges)
       </p>
     </DialogHeader>
 

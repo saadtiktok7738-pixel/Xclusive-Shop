@@ -583,7 +583,7 @@ export default function ProductDetail() {
 
               <p className="text-xs text-muted-foreground line-clamp-1">
                 {product.name} — Rs.{" "}
-                {(product.price * quantity).toLocaleString()}
+                {(product.price * quantity).toLocaleString()} + 250 (Delivery Charges)
               </p>
             </DialogHeader>
 
