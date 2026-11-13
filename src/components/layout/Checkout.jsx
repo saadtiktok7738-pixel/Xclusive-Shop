@@ -259,7 +259,7 @@ export default function Checkout() {
                 </div>
 
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Shipping</span>
+                  <span className="text-muted-foreground">Shipping (Free on advance payment)</span>
                   {shippingSettings.type === "free" ? (
                     <span className="text-accent font-bold">FREE</span>
                   ) : (
